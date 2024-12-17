@@ -1,13 +1,15 @@
 import bpy
 import math
+import os
 
 class ModalCubeOperator(bpy.types.Operator):
     bl_idname = "wm.modal_cube_operator"
     bl_label = "Add Cube on Key Press"
     
     ROOM_SIZE = 10  
-    WALL_HEIGHT = 5  
-    
+    WALL_HEIGHT = 5
+    WOOD_TEXTURE_PATH = "C:/Users/YangSafe/Desktop/Software Stuff/Blender/TP5/textures/planks.png"
+
     def modal(self, context, event):
         
         if event.type == 'ESC':
@@ -61,6 +63,46 @@ class ModalCubeOperator(bpy.types.Operator):
         camera.rotation_euler = (math.radians(90), 0, 0)  
 
         bpy.context.scene.camera = camera
+        
+        self.apply_white_wall_texture(back_wall)
+        self.apply_white_wall_texture(left_wall)
+        self.apply_white_wall_texture(right_wall)
+        
+        self.apply_wooden_floor_texture(floor)
+    
+    def apply_white_wall_texture(self, wall_object):
+        mat = bpy.data.materials.new(name="WhiteWallMaterial")
+        mat.use_nodes = True
+        bsdf = mat.node_tree.nodes.get('Principled BSDF')
+        bsdf.inputs['Base Color'].default_value = (1, 1, 1, 1)
+        
+        if wall_object.data.materials:
+            wall_object.data.materials[0] = mat
+        else:
+            wall_object.data.materials.append(mat)
+    
+    def apply_wooden_floor_texture(self, floor_object):
+        mat = bpy.data.materials.new(name="WoodenFloorMaterial")
+        mat.use_nodes = True
+        
+        texture_image = bpy.data.images.load(self.WOOD_TEXTURE_PATH)
+        
+        texture_node = mat.node_tree.nodes.new(type='ShaderNodeTexImage')
+        texture_node.image = texture_image
+        
+        mapping_node = mat.node_tree.nodes.new(type='ShaderNodeMapping')
+        texture_coords_node = mat.node_tree.nodes.new(type='ShaderNodeTexCoord')
+        
+        mat.node_tree.links.new(texture_coords_node.outputs['UV'], mapping_node.inputs['Vector'])
+        mat.node_tree.links.new(mapping_node.outputs['Vector'], texture_node.inputs['Vector'])
+        
+        bsdf = mat.node_tree.nodes.get('Principled BSDF')
+        mat.node_tree.links.new(texture_node.outputs['Color'], bsdf.inputs['Base Color'])
+        
+        if floor_object.data.materials:
+            floor_object.data.materials[0] = mat
+        else:
+            floor_object.data.materials.append(mat)
 
 def register():
     bpy.utils.register_class(ModalCubeOperator)
