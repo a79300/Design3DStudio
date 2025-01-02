@@ -2,14 +2,36 @@ import socket
 import json
 import threading
 import time
-import sys
 import msvcrt
-import uuid
+import os
+
+FILE_PATH = "data.json"
+
+
+def load_objects_data():
+    if os.path.exists(FILE_PATH):
+        try:
+            with open(FILE_PATH, "r") as file:
+                return json.load(file)
+        except Exception as e:
+            print(f"Erro ao carregar o ficheiro {FILE_PATH}: {e}")
+            return []
+    return []
+
+
+def save_objects_data(data):
+    try:
+        with open(FILE_PATH, "w") as file:
+            json.dump(data, file, indent=4)
+    except Exception as e:
+        print(f"Erro ao salvar o ficheiro {FILE_PATH}: {e}")
 
 
 def start_server():
     host = "127.0.0.1"
     port = 65432
+
+    objects_data = load_objects_data()
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((host, port))
@@ -28,29 +50,6 @@ def start_server():
                 print(f"Recebido de {addr}: {message}")
 
                 if message["action"] == "get_object":
-                    objects_data = [
-                        {
-                            "uid": "Floor",
-                            "dimensions": [1, 0.2, 1],
-                            "location": [0, 0, 0],
-                            "rotation": [90, 0, 0],
-                            "model": "C:/Users/joaossousa/Desktop/CompVisual/Design3DStudio/Objects/floor.obj",
-                        },
-                        {
-                            "uid": 1,
-                            "dimensions": [0.002, 0.002, 0.002],
-                            "location": [-0.2, 4, 0.1],
-                            "rotation": [90, 0, 0],
-                            "model": "C:/Users/joaossousa/Desktop/CompVisual/Design3DStudio/Objects/couch.obj",
-                        },
-                        {
-                            "uid": 2,
-                            "dimensions": [0.002, 0.002, 0.001],
-                            "location": [0.025, 3, 0.1],
-                            "rotation": [90, 0, 0],
-                            "model": "C:/Users/joaossousa/Desktop/CompVisual/Design3DStudio/Objects/coffee-table.obj",
-                        },
-                    ]
                     conn.sendall(json.dumps(objects_data).encode("utf-8"))
             except Exception as e:
                 print(f"Erro com o cliente {addr}: {e}")
@@ -84,6 +83,7 @@ def start_server():
                     server_socket.close()
                 except OSError:
                     print("Erro ao tentar fechar o servidor.")
+                save_objects_data(objects_data)
                 break
         time.sleep(0.1)
 
