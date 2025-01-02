@@ -6,6 +6,7 @@ import sys
 import msvcrt
 import uuid
 
+
 def start_server():
     host = "127.0.0.1"
     port = 65432
@@ -29,18 +30,21 @@ def start_server():
                 if message["action"] == "get_object":
                     objects_data = [
                         {
-                            "uid": str(uuid.uuid4()),
+                            "uid": 1,
                             "dimensions": [0.002, 0.002, 0.002],
                             "location": [0.0, 0.0, 0.1],
                             "rotation": [90, 0, 0],
                             "model": "C:/Users/joaossousa/Desktop/CompVisual/Design3DStudio/Objects/couch.obj",
-                        }
+                        },
+                        {
+                            "uid": 2,
+                            "dimensions": [0.002, 0.002, 0.002],
+                            "location": [2, 2, 2],
+                            "rotation": [90, 0, 0],
+                            "model": "C:/Users/joaossousa/Desktop/CompVisual/Design3DStudio/Objects/couch.obj",
+                        },
                     ]
                     conn.sendall(json.dumps(objects_data).encode("utf-8"))
-                else:
-                    conn.sendall(
-                        json.dumps({"message": "Ação não reconhecida"}).encode("utf-8")
-                    )
             except Exception as e:
                 print(f"Erro com o cliente {addr}: {e}")
                 break
