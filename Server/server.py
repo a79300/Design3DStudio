@@ -4,7 +4,7 @@ import threading
 import time
 import sys
 import msvcrt
-
+import uuid
 
 def start_server():
     host = "127.0.0.1"
@@ -29,8 +29,8 @@ def start_server():
                 if message["action"] == "get_object":
                     objects_data = [
                         {
-                            "uid": "object_1",
-                            "dimensions": [0.1, 0.05, 0.125],
+                            "uid": str(uuid.uuid4()),
+                            "dimensions": [0.002, 0.002, 0.002],
                             "location": [0.0, 0.0, 0.1],
                             "rotation": [90, 0, 0],
                             "model": "C:/Users/joaossousa/Desktop/CompVisual/Design3DStudio/Objects/couch.obj",
