@@ -44,13 +44,12 @@ class SocketClient:
                 else:
                     print("Tentando reconectar...")
                     self.reconnect()
-                    time.sleep(2)  # Espera antes de tentar novamente
+                    time.sleep(2)
                     continue
 
             try:
                 request = {"action": "get_object"}
                 self.sock.sendall(json.dumps(request).encode("utf-8"))
-                print("Pedido enviado ao servidor.")
 
                 data = self.sock.recv(1024)
                 if not data:
@@ -58,20 +57,18 @@ class SocketClient:
                     break
 
                 message = data.decode("utf-8")
-                print(f"Resposta recebida: {message}")
 
-                # Aqui, tratamos a resposta como um array de dicionários
                 objects = json.loads(
                     message
-                )  # Assumindo que o servidor envia um array de objetos
+                ) 
                 if isinstance(objects, list):
                     self.handle_message(
                         objects
-                    )  # Passa a lista inteira para o handle_message
+                    ) 
                 else:
                     print("Erro: Resposta recebida não é uma lista.")
 
-                time.sleep(1)  # Tempo entre os pedidos
+                time.sleep(1)
 
             except Exception as e:
                 print(f"Erro ao se comunicar com o servidor: {e}")
@@ -130,7 +127,6 @@ class SocketClient:
                 dimensions[1],
                 dimensions[2],
             )
-            print(f"Objeto {uid} atualizado com sucesso.")
         else:
             print(f"Falha ao importar ou encontrar o objeto com UID: {uid}")
 
