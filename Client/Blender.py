@@ -58,17 +58,11 @@ class SocketClient:
 
                 message = data.decode("utf-8")
 
-                objects = json.loads(
-                    message
-                ) 
+                objects = json.loads(message)
                 if isinstance(objects, list):
-                    self.handle_message(
-                        objects
-                    ) 
-                else:
-                    print("Erro: Resposta recebida não é uma lista.")
+                    self.handle_message(objects)
 
-                time.sleep(1)
+                time.sleep(5)
 
             except Exception as e:
                 print(f"Erro ao se comunicar com o servidor: {e}")
@@ -92,47 +86,42 @@ class SocketClient:
                 continue
 
             bpy.app.timers.register(
-                lambda: self.update_or_create_object(
-                    uid, dimensions, location, rotation, obj_file
+                lambda obj_uid=uid, obj_dimensions=dimensions, obj_location=location, obj_rotation=rotation, obj_file=obj_file: self.update_or_create_object(
+                    str(obj_uid), obj_dimensions, obj_location, obj_rotation, obj_file
                 )
             )
 
     def update_or_create_object(self, uid, dimensions, location, rotation, obj_file):
-        obj = bpy.data.objects.get(uid)
-
+        obj = bpy.data.objects.get(str(uid))
         if obj is None:
             if os.path.exists(obj_file):
                 bpy.ops.wm.obj_import(filepath=obj_file)
 
                 imported_objects = bpy.context.selected_objects
-                if imported_objects:
-                    obj = imported_objects[0]
-                    obj.name = uid
-            else:
-                return
+                for imported_obj in imported_objects:
+                    imported_obj.name = uid
 
-        if obj:
-            obj.location = (
-                location[0],
-                location[1],
-                location[2],
-            )
+                    imported_obj.location = (location[0], location[1], location[2])
+                    imported_obj.rotation_euler = (
+                        math.radians(rotation[0]),
+                        math.radians(rotation[1]),
+                        math.radians(rotation[2]),
+                    )
+                    imported_obj.scale = (dimensions[0], dimensions[1], dimensions[2])
+        else:
+            obj.location = (location[0], location[1], location[2])
             obj.rotation_euler = (
                 math.radians(rotation[0]),
                 math.radians(rotation[1]),
                 math.radians(rotation[2]),
             )
-            obj.scale = (
-                dimensions[0],
-                dimensions[1],
-                dimensions[2],
-            )
-        else:
-            print(f"Falha ao importar ou encontrar o objeto com UID: {uid}")
+            obj.scale = (dimensions[0], dimensions[1], dimensions[2])
 
     def stop(self):
+        print("Parando o cliente e fechando a conexão.")
         self.running = False
-        self.sock.close()
+        if self.sock:
+            self.sock.close()
 
 
 class ModalSocketOperator(bpy.types.Operator):
