@@ -13,6 +13,9 @@ FILE_PATH = "data.json"
 FRAME_WIDTH, FRAME_HEIGHT = 640, 480
 MODEL_PATH = "assets/models/efficientdet_lite16.tflite"
 COCO_NAMES_PATH = "assets/coco.names"
+selected_object_index = 0
+old_l_wrist_x = None
+old_r_wrist_x = None
 
 
 def load_coco_classes():
@@ -66,6 +69,7 @@ def display_objects_grid(frame_with_background, objects_data):
     square_height = 43
     margin_x = 0
     margin_y = 11
+
     for i, obj in enumerate(objects_data):
         if obj["uid"] != "floor":
             img_path = "assets/images/" + obj.get("uid", "").split("_")[0] + ".png"
@@ -101,6 +105,23 @@ def display_objects_grid(frame_with_background, objects_data):
                             y_offset : y_offset + square_height,
                             x_offset : x_offset + square_width,
                         ] = obj_img
+
+                    if i - 1 == selected_object_index:
+
+                        border_x_offset = (
+                            square_width * selected_object_index + margin_x
+                        )
+                        cv2.rectangle(
+                            frame_with_background,
+                            (border_x_offset - 2, y_offset - 2),
+                            (
+                                border_x_offset + square_width + 2,
+                                y_offset + square_height + 2,
+                            ),
+                            (0, 215, 255),
+                            3,
+                        )
+
                 except Exception as e:
                     print(f"Erro ao carregar a imagem do objeto {obj['uid']}: {e}")
 
@@ -124,12 +145,12 @@ def start_server():
     print(f"Servidor ouvindo em {host}:{port}...")
 
     def object_detection_and_hand_detection():
+        global selected_object_index, old_l_wrist_x, old_r_wrist_x
         cap = cv2.VideoCapture(0)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
 
         if not cap.isOpened():
-            print("Erro ao acessar a câmera.")
             return
 
         base_options = python.BaseOptions(model_asset_path=MODEL_PATH)
@@ -187,7 +208,6 @@ def start_server():
                                         "model": "C:/Users/joaossousa/Desktop/CompVisual/Design3DStudio/Objects/coffee-table.obj",
                                     }
                                 )
-
                 last_detection_time = current_time
 
             frame_with_background = background.copy()
@@ -196,7 +216,10 @@ def start_server():
 
             if results.multi_hand_landmarks:
                 for hand_landmarks in results.multi_hand_landmarks:
-                    for landmark in hand_landmarks.landmark:
+                    wrist = hand_landmarks.landmark[mp_hands.HandLandmark.WRIST]
+                    thumb = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_CMC]
+
+                    for idx, landmark in enumerate(hand_landmarks.landmark):
                         x = int(landmark.x * FRAME_WIDTH)
                         y = int(landmark.y * FRAME_HEIGHT)
                         cv2.circle(frame_with_background, (x, y), 5, (0, 0, 255), -1)
@@ -220,6 +243,34 @@ def start_server():
                             (0, 255, 0),
                             2,
                         )
+
+                    if wrist.x < thumb.x:
+                        hand_type = "Esquerda"
+                    elif wrist.x > thumb.x:
+                        hand_type = "Direita"
+
+                    if hand_type == "Esquerda":
+                        if selected_object_index < len(objects_data) - 2:
+                            if old_l_wrist_x is None:
+                                old_l_wrist_x = wrist.x
+                            else:
+                                wrist_x_diff = wrist.x - old_l_wrist_x
+                                if wrist_x_diff > 0.4:
+                                    selected_object_index += 1
+                                    old_l_wrist_x = wrist.x
+                    elif hand_type == "Direita" and selected_object_index > 0:
+                        if old_r_wrist_x is None:
+                            old_r_wrist_x = wrist.x
+                        else:
+                            wrist_x_diff = old_r_wrist_x - wrist.x
+                            if wrist_x_diff > 0.4:
+                                selected_object_index -= 1
+                                old_r_wrist_x = wrist.x
+
+            else:
+                old_l_wrist_x = None
+                old_r_wrist_x = None
+
             frame_with_background = display_objects_grid(
                 frame_with_background, objects_data
             )
@@ -227,11 +278,6 @@ def start_server():
             cv2.imshow("Hand Detection", frame_with_background)
 
             if cv2.waitKey(1) & 0xFF == ord("q"):
-                print("Fechando o servidor...")
-                try:
-                    server_socket.close()
-                except OSError:
-                    print("Erro ao tentar fechar o servidor.")
                 save_objects_data(objects_data)
                 break
 
