@@ -74,9 +74,9 @@ def display_objects_grid(frame_with_background, objects_data):
         if obj["uid"] != "floor":
             img_path = "assets/images/" + obj.get("uid", "").split("_")[0] + ".png"
             if os.path.exists(img_path):
-                if "couch" in obj["uid"]:
+                if i == 1:
                     margin_x += 11
-                elif "coffee-table" in obj["uid"]:
+                else:
                     margin_x += 20
                 y_offset = FRAME_HEIGHT - square_height - margin_y
                 x_offset = square_width * (i - 1) + margin_x
@@ -196,6 +196,7 @@ def start_server():
 
                     if detection_class in allowed_classes:
                         location = [0, 0, 0.1]
+                        rotation = [90, 0, 0]
                         if not any(obj["location"] == location for obj in objects_data):
                             if detection_class == "cup" and detection_score >= 0.5:
                                 uid = get_next_uid(objects_data, "coffee-table")
@@ -204,8 +205,19 @@ def start_server():
                                         "uid": uid,
                                         "dimensions": [0.002, 0.002, 0.001],
                                         "location": location,
-                                        "rotation": [90, 0, 0],
+                                        "rotation": rotation,
                                         "model": "C:/Users/joaossousa/Desktop/CompVisual/Design3DStudio/Objects/coffee-table.obj",
+                                    }
+                                )
+                            elif detection_class == "chair" and detection_score >= 0.5:
+                                uid = get_next_uid(objects_data, "couch")
+                                objects_data.append(
+                                    {
+                                        "uid": uid,
+                                        "dimensions": [0.002, 0.002, 0.002],
+                                        "location": location,
+                                        "rotation": rotation,
+                                        "model": "C:/Users/joaossousa/Desktop/CompVisual/Design3DStudio/Objects/couch.obj",
                                     }
                                 )
                 last_detection_time = current_time
@@ -255,7 +267,7 @@ def start_server():
                                 old_l_wrist_x = wrist.x
                             else:
                                 wrist_x_diff = wrist.x - old_l_wrist_x
-                                if wrist_x_diff > 0.4:
+                                if wrist_x_diff > 0.25:
                                     selected_object_index += 1
                                     old_l_wrist_x = wrist.x
                     elif hand_type == "Direita" and selected_object_index > 0:
@@ -263,7 +275,7 @@ def start_server():
                             old_r_wrist_x = wrist.x
                         else:
                             wrist_x_diff = old_r_wrist_x - wrist.x
-                            if wrist_x_diff > 0.4:
+                            if wrist_x_diff > 0.25:
                                 selected_object_index -= 1
                                 old_r_wrist_x = wrist.x
 
