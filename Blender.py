@@ -33,7 +33,7 @@ class SocketClient:
                 request = {"action": "get_object"}
                 self.sock.sendall(json.dumps(request).encode("utf-8"))
 
-                data = self.sock.recv(1024)
+                data = self.sock.recv(4096)
                 if not data:
                     break
 
