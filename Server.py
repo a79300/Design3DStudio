@@ -52,6 +52,15 @@ def start_server():
             print("Erro ao acessar a câmera.")
             return
 
+        try:
+            background = cv2.imread("assets/background.png")
+            if background is None:
+                background = np.ones((FRAME_HEIGHT, FRAME_WIDTH, 3), dtype=np.uint8) * 255
+            else:
+                background = cv2.resize(background, (FRAME_WIDTH, FRAME_HEIGHT))
+        except Exception as e:
+            background = np.ones((FRAME_HEIGHT, FRAME_WIDTH, 3), dtype=np.uint8) * 255
+
         mp_hands = mp.solutions.hands
         hands = mp_hands.Hands(
             min_detection_confidence=0.7, min_tracking_confidence=0.7
