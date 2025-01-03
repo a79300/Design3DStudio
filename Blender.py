@@ -55,11 +55,15 @@ class SocketClient:
 
     def handle_message(self, objects):
         for obj_data in objects:
+            print(obj_data)
             uid = obj_data.get("uid")
             dimensions = obj_data.get("dimensions", {})
             location = obj_data.get("location", {})
             rotation = obj_data.get("rotation", {})
-            obj_file = obj_data.get("model", "")
+            obj_file = (
+                "C:/Users/joaossousa/Desktop/CompVisual/Design3DStudio/Objects/"
+                + obj_data.get("model", "")
+            )
 
             if not obj_file:
                 continue
