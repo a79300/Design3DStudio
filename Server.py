@@ -4,8 +4,12 @@ import threading
 import time
 import msvcrt
 import os
+import cv2
+import numpy as np
+import mediapipe as mp
 
 FILE_PATH = "data.json"
+FRAME_WIDTH, FRAME_HEIGHT = 640, 480
 
 
 def load_objects_data():
@@ -37,6 +41,78 @@ def start_server():
     server_socket.bind((host, port))
     server_socket.listen(5)
     print(f"Servidor ouvindo em {host}:{port}...")
+
+    def hand_detection():
+
+        cap = cv2.VideoCapture(0)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
+
+        if not cap.isOpened():
+            print("Erro ao acessar a câmera.")
+            return
+
+        mp_hands = mp.solutions.hands
+        hands = mp_hands.Hands(
+            min_detection_confidence=0.7, min_tracking_confidence=0.7
+        )
+
+        while True:
+
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            frame = cv2.flip(frame, 1)
+
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            results = hands.process(rgb_frame)
+
+            white_background = (
+                np.ones((FRAME_HEIGHT, FRAME_WIDTH, 3), dtype=np.uint8) * 255
+            )
+
+            if results.multi_hand_landmarks:
+                for hand_landmarks in results.multi_hand_landmarks:
+                    for connection in mp_hands.HAND_CONNECTIONS:
+                        start_idx, end_idx = connection
+                        start = hand_landmarks.landmark[start_idx]
+                        end = hand_landmarks.landmark[end_idx]
+
+                        start_x, start_y = int(start.x * FRAME_WIDTH), int(
+                            start.y * FRAME_HEIGHT
+                        )
+                        end_x, end_y = int(end.x * FRAME_WIDTH), int(
+                            end.y * FRAME_HEIGHT
+                        )
+
+                        cv2.line(
+                            white_background,
+                            (start_x, start_y),
+                            (end_x, end_y),
+                            (0, 255, 0),
+                            2,
+                        )
+
+                    for landmark in hand_landmarks.landmark:
+                        x = int(landmark.x * FRAME_WIDTH)
+                        y = int(landmark.y * FRAME_HEIGHT)
+                        cv2.circle(white_background, (x, y), 5, (0, 0, 255), -1)
+
+            cv2.imshow("Object Selector", white_background)
+
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                print("Fechando o servidor...")
+                try:
+                    server_socket.close()
+                except OSError:
+                    print("Erro ao tentar fechar o servidor.")
+                save_objects_data(objects_data)
+                break
+
+        cap.release()
+        cv2.destroyAllWindows()
 
     def handle_client(conn, addr):
         print(f"Conexão estabelecida com {addr}")
@@ -71,21 +147,8 @@ def start_server():
                 break
 
     threading.Thread(target=accept_connections, daemon=True).start()
-
+    hand_detection()
     print("Servidor está rodando. Pressione 'Q' para parar.")
-
-    while True:
-        if msvcrt.kbhit():
-            user_input = msvcrt.getch().decode("utf-8")
-            if user_input.lower() == "q":
-                print("Fechando o servidor...")
-                try:
-                    server_socket.close()
-                except OSError:
-                    print("Erro ao tentar fechar o servidor.")
-                save_objects_data(objects_data)
-                break
-        time.sleep(0.1)
 
 
 if __name__ == "__main__":
