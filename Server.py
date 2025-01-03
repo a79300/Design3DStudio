@@ -48,6 +48,19 @@ def save_objects_data(data):
         print(f"Erro ao salvar o ficheiro {FILE_PATH}: {e}")
 
 
+def get_next_uid(objects_data, base_uid):
+    uids = [obj["uid"] for obj in objects_data if obj["uid"].startswith(base_uid)]
+    max_index = 0
+    for uid in uids:
+        try:
+            index = int(uid.split("_")[1])
+            if index > max_index:
+                max_index = index
+        except ValueError:
+            continue
+    return f"{base_uid}_{max_index + 1}"
+
+
 def start_server():
     host = "127.0.0.1"
     port = 65432
@@ -110,16 +123,19 @@ def start_server():
                     detection_score = detection.categories[0].score
 
                     if detection_class in allowed_classes:
-                        if detection_class == "cup" and detection_score >= 0.5:
-                            objects_data.append(
-                                {
-                                    "uid": "coffee_table_1",
-                                    "dimensions": [0.002, 0.002, 0.001],
-                                    "location": [0, 0, 0.1],
-                                    "rotation": [90, 0, 0],
-                                    "model": "C:/Users/joaossousa/Desktop/CompVisual/Design3DStudio/Objects/coffee-table.obj",
-                                }
-                            )
+                        location = [0, 0, 0.1]
+                        if not any(obj["location"] == location for obj in objects_data):
+                            if detection_class == "cup" and detection_score >= 0.5:
+                                uid = get_next_uid(objects_data, "coffee_table")
+                                objects_data.append(
+                                    {
+                                        "uid": uid,
+                                        "dimensions": [0.002, 0.002, 0.001],
+                                        "location": location,
+                                        "rotation": [90, 0, 0],
+                                        "model": "C:/Users/joaossousa/Desktop/CompVisual/Design3DStudio/Objects/coffee-table.obj",
+                                    }
+                                )
 
                 last_detection_time = current_time
 
