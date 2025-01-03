@@ -46,7 +46,7 @@ def load_objects_data():
 def save_objects_data(data):
     try:
         with open(FILE_PATH, "w") as file:
-            json.dump(data, file, indent=4)
+            json.dump(data, file)
     except Exception as e:
         print(f"Erro ao salvar o ficheiro {FILE_PATH}: {e}")
 
@@ -144,6 +144,15 @@ def start_server():
     server_socket.listen(5)
     print(f"Servidor ouvindo em {host}:{port}...")
 
+    def dict_to_object(uid, dimensions, location, rotation, model):
+        return {
+            "uid": uid,
+            "dimensions": dimensions,
+            "location": location,
+            "rotation": rotation,
+            "model": model,
+        }
+
     def object_detection_and_hand_detection():
         global selected_object_index, old_l_wrist_x, old_r_wrist_x
         cap = cv2.VideoCapture(0)
@@ -200,26 +209,25 @@ def start_server():
                         if not any(obj["location"] == location for obj in objects_data):
                             if detection_class == "cup" and detection_score >= 0.5:
                                 uid = get_next_uid(objects_data, "coffee-table")
-                                objects_data.append(
-                                    {
-                                        "uid": uid,
-                                        "dimensions": [0.002, 0.002, 0.001],
-                                        "location": location,
-                                        "rotation": rotation,
-                                        "model": "C:/Users/joaossousa/Desktop/CompVisual/Design3DStudio/Objects/coffee-table.obj",
-                                    }
+                                data = dict_to_object(
+                                    uid,
+                                    [0.002, 0.002, 0.001],
+                                    location,
+                                    rotation,
+                                    "coffee-table.obj",
                                 )
+                                objects_data.append(data)
                             elif detection_class == "chair" and detection_score >= 0.5:
                                 uid = get_next_uid(objects_data, "couch")
-                                objects_data.append(
-                                    {
-                                        "uid": uid,
-                                        "dimensions": [0.002, 0.002, 0.002],
-                                        "location": location,
-                                        "rotation": rotation,
-                                        "model": "C:/Users/joaossousa/Desktop/CompVisual/Design3DStudio/Objects/couch.obj",
-                                    }
+                                data = dict_to_object(
+                                    uid,
+                                    [0.002, 0.002, 0.001],
+                                    location,
+                                    rotation,
+                                    "coffee-table.obj",
                                 )
+                                objects_data.append(data)
+
                 last_detection_time = current_time
 
             frame_with_background = background.copy()
@@ -252,16 +260,11 @@ def start_server():
                             frame_with_background,
                             (start_x, start_y),
                             (end_x, end_y),
-                            (0, 255, 0),
+                            (0, 0, 255),
                             2,
                         )
 
                     if wrist.x < thumb.x:
-                        hand_type = "Esquerda"
-                    elif wrist.x > thumb.x:
-                        hand_type = "Direita"
-
-                    if hand_type == "Esquerda":
                         if selected_object_index < len(objects_data) - 2:
                             if old_l_wrist_x is None:
                                 old_l_wrist_x = wrist.x
@@ -270,7 +273,7 @@ def start_server():
                                 if wrist_x_diff > 0.25:
                                     selected_object_index += 1
                                     old_l_wrist_x = wrist.x
-                    elif hand_type == "Direita" and selected_object_index > 0:
+                    elif wrist.x > thumb.x and selected_object_index > 0:
                         if old_r_wrist_x is None:
                             old_r_wrist_x = wrist.x
                         else:
