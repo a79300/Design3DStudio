@@ -11,7 +11,7 @@ from mediapipe.tasks.python import vision
 
 FILE_PATH = "data.json"
 FRAME_WIDTH, FRAME_HEIGHT = 640, 480
-MODEL_PATH = "assets/efficientdet_lite0.tflite"
+MODEL_PATH = "assets/models/efficientdet_lite16.tflite"
 COCO_NAMES_PATH = "assets/coco.names"
 
 
@@ -126,7 +126,7 @@ def start_server():
                         location = [0, 0, 0.1]
                         if not any(obj["location"] == location for obj in objects_data):
                             if detection_class == "cup" and detection_score >= 0.5:
-                                uid = get_next_uid(objects_data, "coffee_table")
+                                uid = get_next_uid(objects_data, "coffee-table")
                                 objects_data.append(
                                     {
                                         "uid": uid,
@@ -193,7 +193,6 @@ def start_server():
                     print(f"Conexão encerrada por {addr}")
                     break
                 message = json.loads(data.decode("utf-8"))
-                print(f"Recebido de {addr}: {message}")
 
                 if message["action"] == "get_object":
                     conn.sendall(json.dumps(objects_data).encode("utf-8"))
