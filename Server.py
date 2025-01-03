@@ -61,6 +61,57 @@ def get_next_uid(objects_data, base_uid):
     return f"{base_uid}_{max_index + 1}"
 
 
+def display_objects_grid(frame_with_background, objects_data):
+    square_width = 50
+    square_height = 43
+    margin_x = 0
+    margin_y = 11
+    for i, obj in enumerate(objects_data):
+        if obj["uid"] != "floor":
+            img_path = "assets/images/" + obj.get("uid", "").split("_")[0] + ".png"
+            if os.path.exists(img_path):
+                if "couch" in obj["uid"]:
+                    margin_x += 11
+                elif "coffee-table" in obj["uid"]:
+                    margin_x += 20
+                y_offset = FRAME_HEIGHT - square_height - margin_y
+                x_offset = square_width * (i - 1) + margin_x
+                try:
+                    obj_img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+
+                    if obj_img.shape[2] == 4:
+                        obj_img = cv2.resize(obj_img, (square_width, square_height))
+                        alpha_channel = obj_img[:, :, 3] / 255.0
+
+                        for c in range(3):
+                            frame_with_background[
+                                y_offset : y_offset + square_height,
+                                x_offset : x_offset + square_width,
+                                c,
+                            ] = (1.0 - alpha_channel) * frame_with_background[
+                                y_offset : y_offset + square_height,
+                                x_offset : x_offset + square_width,
+                                c,
+                            ] + alpha_channel * obj_img[
+                                :, :, c
+                            ]
+                    else:
+                        obj_img = cv2.resize(obj_img, (square_width, square_height))
+                        frame_with_background[
+                            y_offset : y_offset + square_height,
+                            x_offset : x_offset + square_width,
+                        ] = obj_img
+                except Exception as e:
+                    print(f"Erro ao carregar a imagem do objeto {obj['uid']}: {e}")
+
+                x_offset += square_width + margin_x
+                if x_offset + square_width > FRAME_WIDTH:
+                    x_offset = 0
+                    y_offset -= square_height + margin_y
+
+    return frame_with_background
+
+
 def start_server():
     host = "127.0.0.1"
     port = 65432
@@ -93,7 +144,7 @@ def start_server():
         )
 
         try:
-            background = cv2.imread("assets/background.png")
+            background = cv2.imread("assets/images/background.png")
             if background is None:
                 background = (
                     np.ones((FRAME_HEIGHT, FRAME_WIDTH, 3), dtype=np.uint8) * 255
@@ -169,6 +220,9 @@ def start_server():
                             (0, 255, 0),
                             2,
                         )
+            frame_with_background = display_objects_grid(
+                frame_with_background, objects_data
+            )
 
             cv2.imshow("Hand Detection", frame_with_background)
 
