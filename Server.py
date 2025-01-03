@@ -55,7 +55,9 @@ def start_server():
         try:
             background = cv2.imread("assets/background.png")
             if background is None:
-                background = np.ones((FRAME_HEIGHT, FRAME_WIDTH, 3), dtype=np.uint8) * 255
+                background = (
+                    np.ones((FRAME_HEIGHT, FRAME_WIDTH, 3), dtype=np.uint8) * 255
+                )
             else:
                 background = cv2.resize(background, (FRAME_WIDTH, FRAME_HEIGHT))
         except Exception as e:
@@ -78,9 +80,7 @@ def start_server():
 
             results = hands.process(rgb_frame)
 
-            white_background = (
-                np.ones((FRAME_HEIGHT, FRAME_WIDTH, 3), dtype=np.uint8) * 255
-            )
+            frame_with_background = background.copy()
 
             if results.multi_hand_landmarks:
                 for hand_landmarks in results.multi_hand_landmarks:
@@ -97,7 +97,7 @@ def start_server():
                         )
 
                         cv2.line(
-                            white_background,
+                            frame_with_background,
                             (start_x, start_y),
                             (end_x, end_y),
                             (0, 255, 0),
@@ -107,9 +107,9 @@ def start_server():
                     for landmark in hand_landmarks.landmark:
                         x = int(landmark.x * FRAME_WIDTH)
                         y = int(landmark.y * FRAME_HEIGHT)
-                        cv2.circle(white_background, (x, y), 5, (0, 0, 255), -1)
+                        cv2.circle(frame_with_background, (x, y), 5, (0, 0, 255), -1)
 
-            cv2.imshow("Object Selector", white_background)
+            cv2.imshow("Object Selector", frame_with_background)
 
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 print("Fechando o servidor...")
