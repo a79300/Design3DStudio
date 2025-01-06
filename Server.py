@@ -1,3 +1,4 @@
+from math import sqrt
 import time
 import socket
 import json
@@ -16,6 +17,7 @@ COCO_NAMES_PATH = "assets/coco.names"
 selected_object_index = 0
 old_l_wrist_x = None
 old_r_wrist_x = None
+selected_axis = None
 
 
 def load_coco_classes():
@@ -122,6 +124,34 @@ def display_objects_grid(frame_with_background, objects_data):
                             3,
                         )
 
+                        center_x = FRAME_WIDTH // 2
+                        center_y = FRAME_HEIGHT // 2
+
+                        selected_img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+                        if selected_img is not None:
+                            selected_img = cv2.resize(selected_img, (150, 150))
+                            alpha_channel = (
+                                selected_img[:, :, 3] / 255.0
+                                if selected_img.shape[2] == 4
+                                else None
+                            )
+
+                            img_height, img_width = selected_img.shape[:2]
+                            y1 = center_y - img_height // 2
+                            y2 = y1 + img_height
+                            x1 = center_x - img_width // 2
+                            x2 = x1 + img_width
+
+                            if alpha_channel is not None:
+                                for c in range(3):
+                                    frame_with_background[y1:y2, x1:x2, c] = (
+                                        alpha_channel * selected_img[:, :, c]
+                                        + (1 - alpha_channel)
+                                        * frame_with_background[y1:y2, x1:x2, c]
+                                    )
+                            else:
+                                frame_with_background[y1:y2, x1:x2] = selected_img
+
                 except Exception as e:
                     print(f"Erro ao carregar a imagem do objeto {obj['uid']}: {e}")
 
@@ -154,7 +184,7 @@ def start_server():
         }
 
     def object_detection_and_hand_detection():
-        global selected_object_index, old_l_wrist_x, old_r_wrist_x
+        global selected_object_index, old_l_wrist_x, old_r_wrist_x, selected_axis
         cap = cv2.VideoCapture(0)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
@@ -238,11 +268,18 @@ def start_server():
                 for hand_landmarks in results.multi_hand_landmarks:
                     wrist = hand_landmarks.landmark[mp_hands.HandLandmark.WRIST]
                     thumb = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_CMC]
+                    thumb_tip = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
+                    index_fingertip = hand_landmarks.landmark[
+                        mp_hands.HandLandmark.INDEX_FINGER_TIP
+                    ]
 
-                    for idx, landmark in enumerate(hand_landmarks.landmark):
-                        x = int(landmark.x * FRAME_WIDTH)
-                        y = int(landmark.y * FRAME_HEIGHT)
-                        cv2.circle(frame_with_background, (x, y), 5, (0, 0, 255), -1)
+                    thumb_x, thumb_y = int(thumb_tip.x * FRAME_WIDTH), int(
+                        thumb_tip.y * FRAME_HEIGHT
+                    )
+                    index_x, index_y = int(index_fingertip.x * FRAME_WIDTH), int(
+                        index_fingertip.y * FRAME_HEIGHT
+                    )
+                    distance = sqrt((thumb_x - index_x) ** 2 + (thumb_y - index_y) ** 2)
 
                     for connection in mp_hands.HAND_CONNECTIONS:
                         start_idx, end_idx = connection
@@ -264,6 +301,11 @@ def start_server():
                             2,
                         )
 
+                    for idx, landmark in enumerate(hand_landmarks.landmark):
+                        x = int(landmark.x * FRAME_WIDTH)
+                        y = int(landmark.y * FRAME_HEIGHT)
+                        cv2.circle(frame_with_background, (x, y), 5, (0, 0, 255), -1)
+
                     if wrist.x < thumb.x:
                         if selected_object_index < len(objects_data) - 2:
                             if old_l_wrist_x is None:
@@ -282,6 +324,39 @@ def start_server():
                                 selected_object_index -= 1
                                 old_r_wrist_x = wrist.x
 
+                    if 0 <= selected_object_index < len(objects_data):
+                        selected_object = objects_data[selected_object_index + 1]
+                        if wrist.x > thumb.x and distance < 50:
+
+                            if (
+                                "initial_thumb_x" not in selected_object
+                                or "initial_thumb_y" not in selected_object
+                                or selected_object["initial_thumb_x"] is None
+                                or selected_object["initial_thumb_y"] is None
+                            ):
+                                selected_object["initial_thumb_x"] = thumb.x
+                                selected_object["initial_thumb_y"] = thumb.y
+
+                            delta_x = thumb.x - selected_object["initial_thumb_x"]
+                            delta_y = thumb.y - selected_object["initial_thumb_y"]
+
+                            if selected_axis == "x":
+                                selected_object["location"][0] = round(
+                                    selected_object["location"][0] + delta_x, 2
+                                )
+                            elif selected_axis == "y":
+                                selected_object["location"][1] = round(
+                                    selected_object["location"][1] + delta_x, 2
+                                )
+                            elif selected_axis == "z":
+                                selected_object["location"][2] = round(
+                                    selected_object["location"][2] - delta_y, 2
+                                )
+
+                        elif wrist.x > thumb.x and distance > 50:
+                            selected_object["initial_thumb_x"] = None
+                            selected_object["initial_thumb_y"] = None
+
             else:
                 old_l_wrist_x = None
                 old_r_wrist_x = None
@@ -292,9 +367,19 @@ def start_server():
 
             cv2.imshow("Hand Detection", frame_with_background)
 
-            if cv2.waitKey(1) & 0xFF == ord("q"):
+            key = cv2.waitKey(1) & 0xFF
+
+            if key == ord("q"):
                 save_objects_data(objects_data)
                 break
+            elif key == ord("x"):
+                selected_axis = "x"
+            elif key == ord("y"):
+                selected_axis = "y"
+            elif key == ord("z"):
+                selected_axis = "z"
+            elif key == ord("c"):
+                selected_axis = None
 
         cap.release()
         cv2.destroyAllWindows()
