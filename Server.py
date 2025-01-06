@@ -342,7 +342,6 @@ def start_server():
                             selected_object = objects_data[selected_object_index + 1]
 
                             scale_size = round(distance / 10000, 4)
-                            print(scale_size)
 
                             if selected_axis == "x":
                                 selected_object["dimensions"][0] = scale_size
