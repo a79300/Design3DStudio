@@ -18,6 +18,7 @@ selected_object_index = 0
 old_l_wrist_x = None
 old_r_wrist_x = None
 selected_axis = None
+scale = None
 
 
 def load_coco_classes():
@@ -184,7 +185,7 @@ def start_server():
         }
 
     def object_detection_and_hand_detection():
-        global selected_object_index, old_l_wrist_x, old_r_wrist_x, selected_axis
+        global selected_object_index, old_l_wrist_x, old_r_wrist_x, selected_axis, scale
         cap = cv2.VideoCapture(0)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
@@ -215,6 +216,8 @@ def start_server():
             background = np.ones((FRAME_HEIGHT, FRAME_WIDTH, 3), dtype=np.uint8) * 255
 
         last_detection_time = time.time()
+
+        grabbed = False
 
         while True:
             ret, frame = cap.read()
@@ -251,10 +254,10 @@ def start_server():
                                 uid = get_next_uid(objects_data, "couch")
                                 data = dict_to_object(
                                     uid,
-                                    [0.002, 0.002, 0.001],
+                                    [0.002, 0.002, 0.002],
                                     location,
                                     rotation,
-                                    "coffee-table.obj",
+                                    "couch.obj",
                                 )
                                 objects_data.append(data)
 
@@ -306,56 +309,78 @@ def start_server():
                         y = int(landmark.y * FRAME_HEIGHT)
                         cv2.circle(frame_with_background, (x, y), 5, (0, 0, 255), -1)
 
-                    if wrist.x < thumb.x:
-                        if selected_object_index < len(objects_data) - 2:
-                            if old_l_wrist_x is None:
-                                old_l_wrist_x = wrist.x
-                            else:
-                                wrist_x_diff = wrist.x - old_l_wrist_x
-                                if wrist_x_diff > 0.25:
-                                    selected_object_index += 1
+                    if selected_axis is None:
+                        if wrist.x < thumb.x:
+                            if selected_object_index < len(objects_data) - 2:
+                                if old_l_wrist_x is None:
                                     old_l_wrist_x = wrist.x
-                    elif wrist.x > thumb.x and selected_object_index > 0:
-                        if old_r_wrist_x is None:
-                            old_r_wrist_x = wrist.x
-                        else:
-                            wrist_x_diff = old_r_wrist_x - wrist.x
-                            if wrist_x_diff > 0.25:
-                                selected_object_index -= 1
+                                else:
+                                    wrist_x_diff = wrist.x - old_l_wrist_x
+                                    if wrist_x_diff > 0.25:
+                                        selected_object_index += 1
+                                        old_l_wrist_x = wrist.x
+                        elif wrist.x > thumb.x and selected_object_index > 0:
+                            if old_r_wrist_x is None:
                                 old_r_wrist_x = wrist.x
+                            else:
+                                wrist_x_diff = old_r_wrist_x - wrist.x
+                                if wrist_x_diff > 0.25:
+                                    selected_object_index -= 1
+                                    old_r_wrist_x = wrist.x
 
-                    if 0 <= selected_object_index < len(objects_data):
-                        selected_object = objects_data[selected_object_index + 1]
+                    if scale:
                         if wrist.x > thumb.x and distance < 50:
+                            grabbed = True
+                        elif wrist.x > thumb.x and distance > 50:
+                            grabbed = False
 
-                            if (
-                                "initial_thumb_x" not in selected_object
-                                or "initial_thumb_y" not in selected_object
-                                or selected_object["initial_thumb_x"] is None
-                                or selected_object["initial_thumb_y"] is None
-                            ):
-                                selected_object["initial_thumb_x"] = thumb.x
-                                selected_object["initial_thumb_y"] = thumb.y
+                        if (
+                            grabbed
+                            and wrist.x < thumb.x
+                            and 0 <= selected_object_index < len(objects_data)
+                        ):
+                            selected_object = objects_data[selected_object_index + 1]
 
-                            delta_x = thumb.x - selected_object["initial_thumb_x"]
-                            delta_y = thumb.y - selected_object["initial_thumb_y"]
+                            scale_size = round(distance / 10000, 4)
+                            print(scale_size)
 
                             if selected_axis == "x":
-                                selected_object["location"][0] = round(
-                                    selected_object["location"][0] + delta_x, 2
-                                )
+                                selected_object["dimensions"][0] = scale_size
                             elif selected_axis == "y":
-                                selected_object["location"][1] = round(
-                                    selected_object["location"][1] + delta_x, 2
-                                )
+                                selected_object["dimensions"][1] = scale_size
                             elif selected_axis == "z":
-                                selected_object["location"][2] = round(
-                                    selected_object["location"][2] - delta_y, 2
-                                )
+                                selected_object["dimensions"][2] = scale_size
+                    else:
+                        if 0 <= selected_object_index < len(objects_data):
+                            selected_object = objects_data[selected_object_index + 1]
+                            if wrist.x > thumb.x and distance < 50:
+                                if (
+                                    "initial_thumb_x" not in selected_object
+                                    or "initial_thumb_y" not in selected_object
+                                    or selected_object["initial_thumb_x"] is None
+                                    or selected_object["initial_thumb_y"] is None
+                                ):
+                                    selected_object["initial_thumb_x"] = thumb.x
+                                    selected_object["initial_thumb_y"] = thumb.y
 
-                        elif wrist.x > thumb.x and distance > 50:
-                            selected_object["initial_thumb_x"] = None
-                            selected_object["initial_thumb_y"] = None
+                                delta_x = thumb.x - selected_object["initial_thumb_x"]
+                                delta_y = thumb.y - selected_object["initial_thumb_y"]
+
+                                if selected_axis == "x":
+                                    selected_object["location"][0] = round(
+                                        selected_object["location"][0] + delta_x, 2
+                                    )
+                                elif selected_axis == "y":
+                                    selected_object["location"][1] = round(
+                                        selected_object["location"][1] + delta_x, 2
+                                    )
+                                elif selected_axis == "z":
+                                    selected_object["location"][2] = round(
+                                        selected_object["location"][2] - delta_y, 2
+                                    )
+                            elif wrist.x > thumb.x and distance > 50:
+                                selected_object["initial_thumb_x"] = None
+                                selected_object["initial_thumb_y"] = None
 
             else:
                 old_l_wrist_x = None
@@ -380,6 +405,8 @@ def start_server():
                 selected_axis = "z"
             elif key == ord("c"):
                 selected_axis = None
+            elif key == ord("s"):
+                scale = not scale
 
         cap.release()
         cv2.destroyAllWindows()
