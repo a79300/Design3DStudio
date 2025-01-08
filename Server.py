@@ -18,6 +18,7 @@ selected_object_index = 0
 old_l_wrist_x = None
 old_r_wrist_x = None
 selected_axis = None
+side = 0
 scale = None
 
 
@@ -74,15 +75,15 @@ def display_objects_grid(frame_with_background, objects_data):
     margin_y = 11
 
     for i, obj in enumerate(objects_data):
-        if obj["uid"] != "floor":
+        if obj["uid"] not in ["floor", "rotate"]:
             img_path = "assets/images/" + obj.get("uid", "").split("_")[0] + ".png"
             if os.path.exists(img_path):
-                if i == 1:
+                if i == 2:
                     margin_x += 11
                 else:
                     margin_x += 20
                 y_offset = FRAME_HEIGHT - square_height - margin_y
-                x_offset = square_width * (i - 1) + margin_x
+                x_offset = square_width * (i - 2) + margin_x
                 try:
                     obj_img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
 
@@ -109,7 +110,7 @@ def display_objects_grid(frame_with_background, objects_data):
                             x_offset : x_offset + square_width,
                         ] = obj_img
 
-                    if i - 1 == selected_object_index:
+                    if i - 2 == selected_object_index:
 
                         border_x_offset = (
                             square_width * selected_object_index + margin_x
@@ -185,7 +186,10 @@ def start_server():
         }
 
     def object_detection_and_hand_detection():
-        global selected_object_index, old_l_wrist_x, old_r_wrist_x, selected_axis, scale
+        global selected_object_index, old_l_wrist_x, old_r_wrist_x, selected_axis, scale, side
+        face_left_location = None
+        face_right_location = None
+        head_rotation = False
         cap = cv2.VideoCapture(0)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
@@ -202,6 +206,11 @@ def start_server():
         mp_hands = mp.solutions.hands
         hands = mp_hands.Hands(
             min_detection_confidence=0.7, min_tracking_confidence=0.7
+        )
+
+        mp_face_mesh = mp.solutions.face_mesh
+        face_mesh = mp_face_mesh.FaceMesh(
+            min_detection_confidence=0.5, min_tracking_confidence=0.5
         )
 
         try:
@@ -239,7 +248,10 @@ def start_server():
                     if detection_class in allowed_classes:
                         location = [0, 0, 0.1]
                         rotation = [90, 0, 0]
-                        if not any(obj["location"] == location for obj in objects_data):
+                        filtered_objects = objects_data[2:]
+                        if not any(
+                            obj["location"] == location for obj in filtered_objects
+                        ):
                             if detection_class == "cup" and detection_score >= 0.5:
                                 uid = get_next_uid(objects_data, "coffee-table")
                                 data = dict_to_object(
@@ -264,6 +276,36 @@ def start_server():
                 last_detection_time = current_time
 
             frame_with_background = background.copy()
+
+            face_results = face_mesh.process(rgb_frame)
+
+            if face_results.multi_face_landmarks:
+                for face_landmarks in face_results.multi_face_landmarks:
+                    for index, landmark in enumerate(face_landmarks.landmark):
+                        y = int(landmark.y * frame.shape[0])
+                        if index == 234:
+                            face_left_location = y
+                        elif index == 454:
+                            face_right_location = y
+
+                        if face_left_location and face_right_location:
+                            diff = face_left_location - face_right_location
+                            if diff > 50 and not head_rotation:
+                                head_rotation = True
+                                if side < 3:
+                                    side += 1
+                                else:
+                                    side = 0
+                            elif diff < -50 and not head_rotation:
+                                if side == 0:
+                                    side = 3
+                                else:
+                                    side -= 1
+                                head_rotation = True
+                            elif diff > -50 and diff < 50:
+                                head_rotation = False
+
+                        objects_data[1]["side"] = side
 
             results = hands.process(rgb_frame)
 
@@ -311,7 +353,7 @@ def start_server():
 
                     if selected_axis is None:
                         if wrist.x < thumb.x:
-                            if selected_object_index < len(objects_data) - 2:
+                            if selected_object_index < len(objects_data) - 3:
                                 if old_l_wrist_x is None:
                                     old_l_wrist_x = wrist.x
                                 else:
@@ -339,7 +381,7 @@ def start_server():
                             and wrist.x < thumb.x
                             and 0 <= selected_object_index < len(objects_data)
                         ):
-                            selected_object = objects_data[selected_object_index + 1]
+                            selected_object = objects_data[selected_object_index + 2]
 
                             scale_size = round(distance / 10000, 4)
 
@@ -351,7 +393,7 @@ def start_server():
                                 selected_object["dimensions"][2] = scale_size
                     else:
                         if 0 <= selected_object_index < len(objects_data):
-                            selected_object = objects_data[selected_object_index + 1]
+                            selected_object = objects_data[selected_object_index + 2]
                             if wrist.x > thumb.x and distance < 50:
                                 if (
                                     "initial_thumb_x" not in selected_object
@@ -374,9 +416,12 @@ def start_server():
                                         selected_object["location"][1] + delta_x, 2
                                     )
                                 elif selected_axis == "z":
-                                    selected_object["location"][2] = round(
+                                    location_z = round(
                                         selected_object["location"][2] - delta_y, 2
                                     )
+                                    if location_z < 0.1:
+                                        location_z = 0.1
+                                    selected_object["location"][2] = location_z
                             elif wrist.x > thumb.x and distance > 50:
                                 selected_object["initial_thumb_x"] = None
                                 selected_object["initial_thumb_y"] = None
