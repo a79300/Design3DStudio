@@ -55,26 +55,70 @@ class SocketClient:
 
     def handle_message(self, objects):
         for obj_data in objects:
-            print(obj_data)
             uid = obj_data.get("uid")
-            dimensions = obj_data.get("dimensions", {})
-            location = obj_data.get("location", {})
-            rotation = obj_data.get("rotation", {})
-            obj_file = (
-                "C:/Users/joaossousa/Desktop/CompVisual/Design3DStudio/Objects/"
-                + obj_data.get("model", "")
-            )
 
-            if not obj_file:
-                continue
+            if uid == "rotate":
+                side = obj_data.get("side", 0)
+                obj = bpy.data.objects.get("camera")
 
-            bpy.app.timers.register(
-                lambda obj_uid=uid, obj_dimensions=dimensions, obj_location=location, obj_rotation=rotation, obj_file=obj_file: self.update_or_create_object(
-                    str(obj_uid), obj_dimensions, obj_location, obj_rotation, obj_file
+                if side == 0:
+                    location = (0, -28.5, 3.65)
+                    rotation = (
+                        math.radians(4409.9),
+                        math.radians(-0.219),
+                        math.radians(359.54),
+                    )
+                elif side == 2:
+                    location = (0, 28.787, 3.65)
+                    rotation = (
+                        math.radians(-4409.5),
+                        math.radians(-179.92),
+                        math.radians(360.74),
+                    )
+                elif side == 1:
+                    location = (-28.582, 0, 3.65)
+                    rotation = (
+                        math.radians(4230.5),
+                        math.radians(539.74),
+                        math.radians(-269.58),
+                    )
+                elif side == 3:
+                    location = (29.257, 0, 3.65)
+                    rotation = (
+                        math.radians(-4230.1),
+                        math.radians(359.56),
+                        math.radians(-270.25),
+                    )
+                else:
+                    continue
+
+                obj.location = location
+                obj.rotation_euler = rotation
+
+            else:
+                dimensions = obj_data.get("dimensions", {})
+                location = obj_data.get("location", {})
+                rotation = obj_data.get("rotation", {})
+                obj_file = (
+                    "C:/Users/joaossousa/Desktop/CompVisual/Design3DStudio/Objects/"
+                    + obj_data.get("model", "")
                 )
-            )
+
+                if not obj_file:
+                    continue
+
+                bpy.app.timers.register(
+                    lambda obj_uid=uid, obj_dimensions=dimensions, obj_location=location, obj_rotation=rotation, obj_file=obj_file: self.update_or_create_object(
+                        str(obj_uid),
+                        obj_dimensions,
+                        obj_location,
+                        obj_rotation,
+                        obj_file,
+                    )
+                )
 
     def update_or_create_object(self, uid, dimensions, location, rotation, obj_file):
+
         obj = bpy.data.objects.get(str(uid))
         if obj is None:
             if os.path.exists(obj_file):
@@ -92,6 +136,7 @@ class SocketClient:
                     )
                     imported_obj.scale = (dimensions[0], dimensions[1], dimensions[2])
         else:
+
             obj.location = (location[0], location[1], location[2])
             obj.rotation_euler = (
                 math.radians(rotation[0]),
@@ -116,6 +161,10 @@ class ModalSocketOperator(bpy.types.Operator):
     def create_room(self):
         bpy.ops.object.select_all(action="SELECT")
         bpy.ops.object.delete()
+
+        bpy.ops.object.camera_add()
+        camera = bpy.context.active_object
+        camera.name = "camera"
 
     def modal(self, context, event):
         if event.type == "ESC":
