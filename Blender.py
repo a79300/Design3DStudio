@@ -68,6 +68,20 @@ class SocketClient:
                         math.radians(-0.219),
                         math.radians(359.54),
                     )
+
+                    wall_1 = bpy.data.objects.get("Wall_1")
+                    wall_1.location = (7.7, 0.112159, 2.4)
+                    wall_1.scale = (0.250, 15, 5)
+                    wall_1.rotation_euler = (0, 0, 0)
+                    wall_2 = bpy.data.objects.get("Wall_2")
+                    wall_2.location = (-7.1947, 0.112159, 2.4)
+                    wall_2.scale = (0.250, 15, 5)
+                    wall_2.rotation_euler = (0, 0, 0)
+                    wall_3 = bpy.data.objects.get("Wall_3")
+                    wall_3.location = (0.30, 7.5, 2.4)
+                    wall_3.scale = (0.250, 15, 5)
+                    wall_3.rotation_euler = (0, 0, math.radians(90))
+
                 elif side == 2:
                     location = (0, 28.787, 3.65)
                     rotation = (
@@ -75,6 +89,20 @@ class SocketClient:
                         math.radians(-179.92),
                         math.radians(360.74),
                     )
+
+                    wall_1 = bpy.data.objects.get("Wall_1")
+                    wall_1.location = (7.7, 0.112159, 2.4)
+                    wall_1.scale = (0.250, 15, 5)
+                    wall_1.rotation_euler = (0, 0, 0)
+                    wall_2 = bpy.data.objects.get("Wall_2")
+                    wall_2.location = (-7.1947, 0.112159, 2.4)
+                    wall_2.scale = (0.250, 15, 5)
+                    wall_2.rotation_euler = (0, 0, 0)
+                    wall_3 = bpy.data.objects.get("Wall_3")
+                    wall_3.location = (0.30, -7.5, 2.4)
+                    wall_3.scale = (0.250, 15, 5)
+                    wall_3.rotation_euler = (0, 0, math.radians(90))
+
                 elif side == 1:
                     location = (-28.582, 0, 3.65)
                     rotation = (
@@ -82,6 +110,20 @@ class SocketClient:
                         math.radians(539.74),
                         math.radians(-269.58),
                     )
+
+                    wall_1 = bpy.data.objects.get("Wall_1")
+                    wall_1.location = (0.30, 7.5, 2.4)
+                    wall_1.scale = (0.250, 15, 5)
+                    wall_1.rotation_euler = (0, 0, math.radians(90))
+                    wall_2 = bpy.data.objects.get("Wall_2")
+                    wall_2.location = (7.7, 0.112159, 2.4)
+                    wall_2.scale = (0.250, 15, 5)
+                    wall_2.rotation_euler = (0, 0, 0)
+                    wall_3 = bpy.data.objects.get("Wall_3")
+                    wall_3.location = (0.30, -7.5, 2.4)
+                    wall_3.scale = (0.250, 15, 5)
+                    wall_3.rotation_euler = (0, 0, math.radians(90))
+
                 elif side == 3:
                     location = (29.257, 0, 3.65)
                     rotation = (
@@ -89,6 +131,19 @@ class SocketClient:
                         math.radians(359.56),
                         math.radians(-270.25),
                     )
+
+                    wall_1 = bpy.data.objects.get("Wall_1")
+                    wall_1.location = (0.3, 7.5, 2.4)
+                    wall_1.scale = (0.250, 15, 5)
+                    wall_1.rotation_euler = (0, 0, math.radians(90))
+                    wall_2 = bpy.data.objects.get("Wall_2")
+                    wall_2.location = (0.3, -7.5, 2.4)
+                    wall_2.scale = (0.250, 15, 5)
+                    wall_2.rotation_euler = (0, 0, math.radians(90))
+                    wall_3 = bpy.data.objects.get("Wall_3")
+                    wall_3.location = (-7.1918, 0.112159, 2.4)
+                    wall_3.scale = (0.250, 15, 5)
+                    wall_3.rotation_euler = (0, 0, 0)
                 else:
                     continue
 
@@ -165,6 +220,16 @@ class ModalSocketOperator(bpy.types.Operator):
         bpy.ops.object.camera_add()
         camera = bpy.context.active_object
         camera.name = "camera"
+
+        bpy.ops.mesh.primitive_cube_add(size=0)
+        wall_1 = bpy.context.active_object
+        wall_1.name = "Wall_1"
+        bpy.ops.mesh.primitive_cube_add(size=0)
+        wall_2 = bpy.context.active_object
+        wall_2.name = "Wall_2"
+        bpy.ops.mesh.primitive_cube_add(size=0)
+        wall_3 = bpy.context.active_object
+        wall_3.name = "Wall_3"
 
     def modal(self, context, event):
         if event.type == "ESC":
