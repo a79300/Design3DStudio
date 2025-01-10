@@ -408,19 +408,53 @@ def start_server():
                                 delta_y = thumb.y - selected_object["initial_thumb_y"]
 
                                 if selected_axis == "x":
-                                    selected_object["location"][0] = round(
+                                    location_x = round(
                                         selected_object["location"][0] + delta_x, 2
                                     )
+
+                                    if "couch" in selected_object["uid"]:
+                                        if location_x > 6:
+                                            location_x = 6
+
+                                        if location_x < -6:
+                                            location_x = -6
+                                    elif "coffee-table" in selected_object["uid"]:
+                                        if location_x > 5.8:
+                                            location_x = 5.8
+
+                                        if location_x < -5.8:
+                                            location_x = -5.8
+
+                                    selected_object["location"][0] = location_x
                                 elif selected_axis == "y":
-                                    selected_object["location"][1] = round(
+                                    location_y = round(
                                         selected_object["location"][1] + delta_x, 2
                                     )
+
+                                    if "couch" in selected_object["uid"]:
+                                        if location_y > 6:
+                                            location_y = 6
+
+                                        if location_y < -6:
+                                            location_y = -6
+                                    elif "coffee-table" in selected_object["uid"]:
+                                        if location_y > 5.8:
+                                            location_y = 5.8
+
+                                        if location_y < -5.8:
+                                            location_y = -5.8
+
+                                    selected_object["location"][1] = location_y
                                 elif selected_axis == "z":
                                     location_z = round(
                                         selected_object["location"][2] - delta_y, 2
                                     )
                                     if location_z < 0.1:
                                         location_z = 0.1
+
+                                    if location_z > 2.5:
+                                        location_z = 2.5
+
                                     selected_object["location"][2] = location_z
                             elif wrist.x > thumb.x and distance > 50:
                                 selected_object["initial_thumb_x"] = None
