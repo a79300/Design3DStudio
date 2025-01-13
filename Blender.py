@@ -70,16 +70,16 @@ class SocketClient:
                     )
 
                     wall_1 = bpy.data.objects.get("Wall_1")
-                    wall_1.location = (7.7, 0.112159, 2.4)
-                    wall_1.scale = (0.250, 15, 5)
+                    wall_1.location = (7.7, 0.112159, 3.65)
+                    wall_1.scale = (0.250, 15, 7.5)
                     wall_1.rotation_euler = (0, 0, 0)
                     wall_2 = bpy.data.objects.get("Wall_2")
-                    wall_2.location = (-7.1947, 0.112159, 2.4)
-                    wall_2.scale = (0.250, 15, 5)
+                    wall_2.location = (-7.1947, 0.112159, 3.65)
+                    wall_2.scale = (0.250, 15, 7.5)
                     wall_2.rotation_euler = (0, 0, 0)
                     wall_3 = bpy.data.objects.get("Wall_3")
-                    wall_3.location = (0.30, 7.5, 2.4)
-                    wall_3.scale = (0.250, 15, 5)
+                    wall_3.location = (0.30, 7.5, 3.65)
+                    wall_3.scale = (0.250, 15, 7.5)
                     wall_3.rotation_euler = (0, 0, math.radians(90))
 
                 elif side == 2:
@@ -91,16 +91,16 @@ class SocketClient:
                     )
 
                     wall_1 = bpy.data.objects.get("Wall_1")
-                    wall_1.location = (7.7, 0.112159, 2.4)
-                    wall_1.scale = (0.250, 15, 5)
+                    wall_1.location = (7.7, 0.112159, 3.65)
+                    wall_1.scale = (0.250, 15, 7.5)
                     wall_1.rotation_euler = (0, 0, 0)
                     wall_2 = bpy.data.objects.get("Wall_2")
-                    wall_2.location = (-7.1947, 0.112159, 2.4)
-                    wall_2.scale = (0.250, 15, 5)
+                    wall_2.location = (-7.1947, 0.112159, 3.65)
+                    wall_2.scale = (0.250, 15, 7.5)
                     wall_2.rotation_euler = (0, 0, 0)
                     wall_3 = bpy.data.objects.get("Wall_3")
-                    wall_3.location = (0.30, -7.5, 2.4)
-                    wall_3.scale = (0.250, 15, 5)
+                    wall_3.location = (0.30, -7.5, 3.65)
+                    wall_3.scale = (0.250, 15, 7.5)
                     wall_3.rotation_euler = (0, 0, math.radians(90))
 
                 elif side == 1:
@@ -112,16 +112,16 @@ class SocketClient:
                     )
 
                     wall_1 = bpy.data.objects.get("Wall_1")
-                    wall_1.location = (0.30, 7.5, 2.4)
-                    wall_1.scale = (0.250, 15, 5)
+                    wall_1.location = (0.30, 7.5, 3.65)
+                    wall_1.scale = (0.250, 15, 7.5)
                     wall_1.rotation_euler = (0, 0, math.radians(90))
                     wall_2 = bpy.data.objects.get("Wall_2")
-                    wall_2.location = (7.7, 0.112159, 2.4)
-                    wall_2.scale = (0.250, 15, 5)
+                    wall_2.location = (7.7, 0.112159, 3.65)
+                    wall_2.scale = (0.250, 15, 7.5)
                     wall_2.rotation_euler = (0, 0, 0)
                     wall_3 = bpy.data.objects.get("Wall_3")
-                    wall_3.location = (0.30, -7.5, 2.4)
-                    wall_3.scale = (0.250, 15, 5)
+                    wall_3.location = (0.30, -7.5, 3.65)
+                    wall_3.scale = (0.250, 15, 7.5)
                     wall_3.rotation_euler = (0, 0, math.radians(90))
 
                 elif side == 3:
@@ -133,16 +133,16 @@ class SocketClient:
                     )
 
                     wall_1 = bpy.data.objects.get("Wall_1")
-                    wall_1.location = (0.3, 7.5, 2.4)
-                    wall_1.scale = (0.250, 15, 5)
+                    wall_1.location = (0.3, 7.5, 3.65)
+                    wall_1.scale = (0.250, 15, 7.5)
                     wall_1.rotation_euler = (0, 0, math.radians(90))
                     wall_2 = bpy.data.objects.get("Wall_2")
-                    wall_2.location = (0.3, -7.5, 2.4)
-                    wall_2.scale = (0.250, 15, 5)
+                    wall_2.location = (0.3, -7.5, 3.65)
+                    wall_2.scale = (0.250, 15, 7.5)
                     wall_2.rotation_euler = (0, 0, math.radians(90))
                     wall_3 = bpy.data.objects.get("Wall_3")
-                    wall_3.location = (-7.1918, 0.112159, 2.4)
-                    wall_3.scale = (0.250, 15, 5)
+                    wall_3.location = (-7.1918, 0.112159, 3.65)
+                    wall_3.scale = (0.250, 15, 7.5)
                     wall_3.rotation_euler = (0, 0, 0)
                 else:
                     continue
@@ -221,6 +221,12 @@ class ModalSocketOperator(bpy.types.Operator):
         camera = bpy.context.active_object
         camera.name = "camera"
 
+        bpy.ops.mesh.primitive_cube_add(size=0)
+        ceiling = bpy.context.active_object
+        ceiling.name = "ceiling"
+        ceiling.location = (0.29127, 0.0111, 7.3)
+        ceiling.rotation_euler = (math.radians(90), math.radians(-90), 0)
+        ceiling.scale = (0.250, 15, 15)
         bpy.ops.mesh.primitive_cube_add(size=0)
         wall_1 = bpy.context.active_object
         wall_1.name = "Wall_1"
