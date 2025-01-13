@@ -452,8 +452,8 @@ def start_server():
                                     if location_z < 0.1:
                                         location_z = 0.1
 
-                                    if location_z > 2.5:
-                                        location_z = 2.5
+                                    if location_z > 4:
+                                        location_z = 4
 
                                     selected_object["location"][2] = location_z
                             elif wrist.x > thumb.x and distance > 50:
