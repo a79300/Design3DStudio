@@ -19,7 +19,8 @@ old_l_wrist_x = None
 old_r_wrist_x = None
 selected_axis = None
 side = 0
-scale = None
+scale = False
+rotate = False
 
 
 def load_coco_classes():
@@ -186,10 +187,11 @@ def start_server():
         }
 
     def object_detection_and_hand_detection():
-        global selected_object_index, old_l_wrist_x, old_r_wrist_x, selected_axis, scale, side
+        global selected_object_index, old_l_wrist_x, old_r_wrist_x, selected_axis, scale, rotate, side
         face_left_location = None
         face_right_location = None
         head_rotation = False
+        thumb_x_last_position = None
         cap = cv2.VideoCapture(0)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
@@ -227,6 +229,7 @@ def start_server():
         last_detection_time = time.time()
 
         grabbed = False
+        rotated = False
 
         while True:
             ret, frame = cap.read()
@@ -351,7 +354,7 @@ def start_server():
                         y = int(landmark.y * FRAME_HEIGHT)
                         cv2.circle(frame_with_background, (x, y), 5, (0, 0, 255), -1)
 
-                    if selected_axis is None:
+                    if selected_axis is None and not scale and not rotate:
                         if wrist.x < thumb.x:
                             if selected_object_index < len(objects_data) - 3:
                                 if old_l_wrist_x is None:
@@ -370,12 +373,12 @@ def start_server():
                                     selected_object_index -= 1
                                     old_r_wrist_x = wrist.x
 
-                    if scale:
-                        if wrist.x > thumb.x and distance < 50:
-                            grabbed = True
-                        elif wrist.x > thumb.x and distance > 50:
-                            grabbed = False
+                    if wrist.x > thumb.x and distance < 50:
+                        grabbed = True
+                    elif wrist.x > thumb.x and distance > 50:
+                        grabbed = False
 
+                    if scale:
                         if (
                             grabbed
                             and wrist.x < thumb.x
@@ -391,6 +394,27 @@ def start_server():
                                 selected_object["dimensions"][1] = scale_size
                             elif selected_axis == "z":
                                 selected_object["dimensions"][2] = scale_size
+                    elif rotate:
+                        if grabbed:
+                            if (wrist.x < thumb.x and 0 <= selected_object_index < len(objects_data)):
+
+                                if thumb_x_last_position is None:
+                                    thumb_x_last_position = thumb_x
+
+                                if thumb_x_last_position is not None:
+                                    thumb_x_diff = thumb_x_last_position - thumb_x
+                                    if thumb_x_diff > 100 and not rotated:
+                                        rotation_z = selected_object["rotation"][2]
+                                        if rotation_z + 90 <= 360:
+                                            selected_object["rotation"][2] += 90
+                                        else:
+                                            selected_object["rotation"][2] = 0
+                                        rotated = True
+                                    elif thumb_x > thumb_x_last_position:
+                                        thumb_x_last_position = None
+                        else:
+                            rotated = False
+
                     else:
                         if 0 <= selected_object_index < len(objects_data):
                             selected_object = objects_data[selected_object_index + 2]
@@ -485,6 +509,14 @@ def start_server():
                 selected_axis = None
             elif key == ord("s"):
                 scale = not scale
+                rotate = False
+            elif key == ord("r"):
+                rotate = not rotate
+                scale = False
+            elif key == ord("e"):
+                scale = False
+                rotate = False
+                selected_axis = None
 
         cap.release()
         cv2.destroyAllWindows()
