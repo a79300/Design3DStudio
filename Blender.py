@@ -54,6 +54,7 @@ class SocketClient:
         self.connect()
 
     def handle_message(self, objects):
+        uids = [obj_data.get("uid") for obj_data in objects]
         for obj_data in objects:
             uid = obj_data.get("uid")
 
@@ -163,42 +164,54 @@ class SocketClient:
                     continue
 
                 bpy.app.timers.register(
-                    lambda obj_uid=uid, obj_dimensions=dimensions, obj_location=location, obj_rotation=rotation, obj_file=obj_file: self.update_or_create_object(
+                    lambda obj_uid=uid, obj_dimensions=dimensions, obj_location=location, obj_rotation=rotation, obj_file=obj_file, uids=uids: self.update_or_create_object(
                         str(obj_uid),
                         obj_dimensions,
                         obj_location,
                         obj_rotation,
                         obj_file,
+                        uids,
                     )
                 )
 
-    def update_or_create_object(self, uid, dimensions, location, rotation, obj_file):
+    def update_or_create_object(
+        self, uid, dimensions, location, rotation, obj_file, uids
+    ):
+
+        all_objects = bpy.context.scene.objects
+        for obj in all_objects:
+            if obj.name not in uids and obj.name not in [
+                "camera",
+                "Wall_1",
+                "Wall_2",
+                "Wall_3",
+                "wall_4",
+            ]:
+                bpy.data.objects.remove(obj)
+            elif obj.name == uid:
+                obj.location = (location[0], location[1], location[2])
+                obj.rotation_euler = (
+                    math.radians(rotation[0]),
+                    math.radians(rotation[1]),
+                    math.radians(rotation[2]),
+                )
+                obj.scale = (dimensions[0], dimensions[1], dimensions[2])
 
         obj = bpy.data.objects.get(str(uid))
-        if obj is None:
-            if os.path.exists(obj_file):
-                bpy.ops.wm.obj_import(filepath=obj_file)
+        if obj is None and os.path.exists(obj_file):
+            bpy.ops.wm.obj_import(filepath=obj_file)
 
-                imported_objects = bpy.context.selected_objects
-                for imported_obj in imported_objects:
-                    imported_obj.name = uid
+            imported_objects = bpy.context.selected_objects
+            for imported_obj in imported_objects:
+                imported_obj.name = uid
 
-                    imported_obj.location = (location[0], location[1], location[2])
-                    imported_obj.rotation_euler = (
-                        math.radians(rotation[0]),
-                        math.radians(rotation[1]),
-                        math.radians(rotation[2]),
-                    )
-                    imported_obj.scale = (dimensions[0], dimensions[1], dimensions[2])
-        else:
-
-            obj.location = (location[0], location[1], location[2])
-            obj.rotation_euler = (
-                math.radians(rotation[0]),
-                math.radians(rotation[1]),
-                math.radians(rotation[2]),
-            )
-            obj.scale = (dimensions[0], dimensions[1], dimensions[2])
+                imported_obj.location = (location[0], location[1], location[2])
+                imported_obj.rotation_euler = (
+                    math.radians(rotation[0]),
+                    math.radians(rotation[1]),
+                    math.radians(rotation[2]),
+                )
+                imported_obj.scale = (dimensions[0], dimensions[1], dimensions[2])
 
     def stop(self):
         self.running = False
@@ -222,11 +235,11 @@ class ModalSocketOperator(bpy.types.Operator):
         camera.name = "camera"
 
         bpy.ops.mesh.primitive_cube_add(size=0)
-        ceiling = bpy.context.active_object
-        ceiling.name = "ceiling"
-        ceiling.location = (0.29127, 0.0111, 7.3)
-        ceiling.rotation_euler = (math.radians(90), math.radians(-90), 0)
-        ceiling.scale = (0.250, 15, 15)
+        wall_4 = bpy.context.active_object
+        wall_4.name = "wall_4"
+        wall_4.location = (0.29127, 0.0111, 7.3)
+        wall_4.rotation_euler = (math.radians(90), math.radians(-90), 0)
+        wall_4.scale = (0.250, 15, 15)
         bpy.ops.mesh.primitive_cube_add(size=0)
         wall_1 = bpy.context.active_object
         wall_1.name = "Wall_1"
