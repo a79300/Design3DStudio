@@ -277,6 +277,29 @@ def start_server():
                                     "couch.obj",
                                 )
                                 objects_data.append(data)
+                            elif (
+                                detection_class == "cell phone"
+                                and detection_score >= 0.5
+                            ):
+                                uid = get_next_uid(objects_data, "playstation")
+                                data = dict_to_object(
+                                    uid,
+                                    [0.15, 0.15, 0.15],
+                                    location,
+                                    rotation,
+                                    "playstation.obj",
+                                )
+                                objects_data.append(data)
+                            elif detection_class == "bed" and detection_score >= 0.5:
+                                uid = get_next_uid(objects_data, "bed")
+                                data = dict_to_object(
+                                    uid,
+                                    [2, 2, 2],
+                                    [2, -5, 0.1],
+                                    [90, 0, -90],
+                                    "bed.obj",
+                                )
+                                objects_data.append(data)
 
                 last_detection_time = current_time
 
@@ -490,6 +513,18 @@ def start_server():
 
                                         if location_x < -5.8:
                                             location_x = -5.8
+                                    elif "playstation" in selected_object["uid"]:
+                                        if location_x > 7:
+                                            location_x = 7
+
+                                        if location_x < -7:
+                                            location_x = -7
+                                    elif "bed" in selected_object["uid"]:
+                                        if location_x > 7:
+                                            location_x = 7
+
+                                        if location_x < -3.5:
+                                            location_x = -3.5
 
                                     selected_object["location"][0] = location_x
                                 elif selected_axis == "y":
@@ -509,6 +544,18 @@ def start_server():
 
                                         if location_y < -5.8:
                                             location_y = -5.8
+                                    elif "playstation" in selected_object["uid"]:
+                                        if location_y > 7:
+                                            location_y = 7
+
+                                        if location_y < -7:
+                                            location_y = -7
+                                    elif "bed" in selected_object["uid"]:
+                                        if location_y > -1:
+                                            location_y = -1
+
+                                        if location_y < -9:
+                                            location_y = -9
 
                                     selected_object["location"][1] = location_y
                                 elif selected_axis == "z":
