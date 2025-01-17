@@ -21,6 +21,7 @@ selected_axis = None
 side = 0
 scale = False
 rotate = False
+delete = False
 
 
 def load_coco_classes():
@@ -187,7 +188,7 @@ def start_server():
         }
 
     def object_detection_and_hand_detection():
-        global selected_object_index, old_l_wrist_x, old_r_wrist_x, selected_axis, scale, rotate, side
+        global selected_object_index, old_l_wrist_x, old_r_wrist_x, selected_axis, scale, rotate, delete, side
         face_left_location = None
         face_right_location = None
         head_rotation = False
@@ -230,6 +231,7 @@ def start_server():
 
         grabbed = False
         rotated = False
+        is_scissors = False
 
         while True:
             ret, frame = cap.read()
@@ -317,15 +319,33 @@ def start_server():
                     wrist = hand_landmarks.landmark[mp_hands.HandLandmark.WRIST]
                     thumb = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_CMC]
                     thumb_tip = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
-                    index_fingertip = hand_landmarks.landmark[
+                    index_tip = hand_landmarks.landmark[
                         mp_hands.HandLandmark.INDEX_FINGER_TIP
                     ]
+                    middle_tip = hand_landmarks.landmark[
+                        mp_hands.HandLandmark.MIDDLE_FINGER_TIP
+                    ]
+                    ring_tip = hand_landmarks.landmark[
+                        mp_hands.HandLandmark.RING_FINGER_TIP
+                    ]
+                    pinky_tip = hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_TIP]
+
+                    index_pip = hand_landmarks.landmark[
+                        mp_hands.HandLandmark.INDEX_FINGER_PIP
+                    ]
+                    middle_pip = hand_landmarks.landmark[
+                        mp_hands.HandLandmark.MIDDLE_FINGER_PIP
+                    ]
+                    ring_pip = hand_landmarks.landmark[
+                        mp_hands.HandLandmark.RING_FINGER_PIP
+                    ]
+                    pinky_pip = hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_PIP]
 
                     thumb_x, thumb_y = int(thumb_tip.x * FRAME_WIDTH), int(
                         thumb_tip.y * FRAME_HEIGHT
                     )
-                    index_x, index_y = int(index_fingertip.x * FRAME_WIDTH), int(
-                        index_fingertip.y * FRAME_HEIGHT
+                    index_x, index_y = int(index_tip.x * FRAME_WIDTH), int(
+                        index_tip.y * FRAME_HEIGHT
                     )
                     distance = sqrt((thumb_x - index_x) ** 2 + (thumb_y - index_y) ** 2)
 
@@ -354,6 +374,25 @@ def start_server():
                         y = int(landmark.y * FRAME_HEIGHT)
                         cv2.circle(frame_with_background, (x, y), 5, (0, 0, 255), -1)
 
+                    if wrist.x < thumb.x:
+                        index_extended = index_tip.y < index_pip.y
+                        middle_extended = middle_tip.y < middle_pip.y
+
+                        ring_folded = ring_tip.y > ring_pip.y
+                        pinky_folded = pinky_tip.y > pinky_pip.y
+
+                        is_scissors = (
+                            index_extended
+                            and middle_extended
+                            and ring_folded
+                            and pinky_folded
+                        )
+
+                    if wrist.x > thumb.x and distance < 50:
+                        grabbed = True
+                    elif wrist.x > thumb.x and distance > 50:
+                        grabbed = False
+
                     if selected_axis is None and not scale and not rotate:
                         if wrist.x < thumb.x:
                             if selected_object_index < len(objects_data) - 3:
@@ -373,10 +412,11 @@ def start_server():
                                     selected_object_index -= 1
                                     old_r_wrist_x = wrist.x
 
-                    if wrist.x > thumb.x and distance < 50:
-                        grabbed = True
-                    elif wrist.x > thumb.x and distance > 50:
-                        grabbed = False
+                        if grabbed and is_scissors and delete:
+                            if selected_object_index < len(objects_data) - 2:
+                                objects_data.pop(selected_object_index + 2)
+                                delete = False
+                                selected_object_index -= 1
 
                     if scale:
                         if (
@@ -396,7 +436,9 @@ def start_server():
                                 selected_object["dimensions"][2] = scale_size
                     elif rotate:
                         if grabbed:
-                            if (wrist.x < thumb.x and 0 <= selected_object_index < len(objects_data)):
+                            if wrist.x < thumb.x and 0 <= selected_object_index < len(
+                                objects_data
+                            ):
 
                                 if thumb_x_last_position is None:
                                     thumb_x_last_position = thumb_x
@@ -415,7 +457,7 @@ def start_server():
                         else:
                             rotated = False
 
-                    else:
+                    elif len(objects_data) > 2:
                         if 0 <= selected_object_index < len(objects_data):
                             selected_object = objects_data[selected_object_index + 2]
                             if wrist.x > thumb.x and distance < 50:
@@ -510,12 +552,19 @@ def start_server():
             elif key == ord("s"):
                 scale = not scale
                 rotate = False
+                delete = False
             elif key == ord("r"):
                 rotate = not rotate
                 scale = False
+                delete = False
+            elif key == ord("d"):
+                rotate = False
+                scale = False
+                delete = not delete
             elif key == ord("e"):
                 scale = False
                 rotate = False
+                delete = False
                 selected_axis = None
 
         cap.release()
